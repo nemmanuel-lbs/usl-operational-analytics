@@ -1,0 +1,19 @@
+# Quarto render artefacts
+*.html
+*.docx
+*.quarto_ipynb
+*.quarto_ipynb_1
+*.quarto_ipynb_2
+.quarto/
+
+# R / Python caches
+__pycache__/
+.ipynb_checkpoints/
+*.pyc
+
+# rsconnect deploy metadata
+rsconnect/
+
+# OS files
+.DS_Store
+Thumbs.db
