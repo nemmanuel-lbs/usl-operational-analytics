@@ -1,7 +1,7 @@
 # Quarto render artefacts
 *.html
 *.docx
-*.quarto_ipynb
+*.quarto_ipynb*
 *.quarto_ipynb_1
 *.quarto_ipynb_2
 .quarto/
