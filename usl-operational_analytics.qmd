@@ -1,23 +1,44 @@
 ---
 title: "Advanced & Operational Analytics for USL's ISURA Case Workflow"
 subtitle: "Text · Monte Carlo · Forecasting · Survival · Optimisation"
-author: "Emmanuel Nkenwokeneme — CTO, Union Systems Limited (USL)"
+author:
+  - name: "Emmanuel Nkenwokeneme"
+    affiliations:
+      - name: "Union Systems Limited (USL)"
+        department: "Office of the CTO"
 date: today
+date-format: "D MMMM YYYY"
 format:
   html:
     toc: true
     toc-depth: 3
+    toc-location: left
+    toc-title: "Navigation"
     number-sections: true
-    fig-width: 7.5
-    fig-height: 4
-    code-fold: false
-    theme: cosmo
+    fig-width: 8
+    fig-height: 4.5
+    code-fold: true
+    code-tools: true
+    code-line-numbers: true
+    code-overflow: wrap
+    code-copy: true
+    highlight-style:
+      light: github
+    theme: [cosmo, custom.scss]
+    smooth-scroll: true
     embed-resources: true
+    page-layout: article
+    grid:
+      body-width: 900px
+      margin-width: 280px
+    anchor-sections: true
+    fig-cap-location: bottom
+    tbl-cap-location: top
   docx:
     toc: true
     number-sections: true
 execute:
-  echo: false
+  echo: true
   warning: false
   message: false
   cache: false
@@ -45,8 +66,9 @@ import pulp
 import plotly.graph_objects as go
 import plotly.subplots as ps
 
-PALETTE = ["#4C78A8", "#E45756", "#54A24B", "#F58518", "#B279A2", "#9D755D"]
-DATA_PATH = "USL_ISURA_ANALYSIS.xlsx"
+# Union Systems brand palette
+PALETTE = ["#1C2541", "#6BC5E8", "#3AADD4", "#E76F51", "#E9C46A", "#D4A373"]
+DATA_PATH = "USL_ISURA_ANALYSIS.csv"
 ```
 
 # Executive Summary
@@ -159,15 +181,84 @@ print(f"Rows: {df.shape[0]:,}    Columns: {df.shape[1]}")
 dated = df["CREATED_DATE"].notna().sum()
 print(f"Cases with parseable date: {dated:,} of {df.shape[0]:,}")
 print(f"Date span (where available): {df['CREATED_DATE'].min().date()} → {df['CREATED_DATE'].max().date()}")
-print(f"\nCases per company:\n{df['COMPANY_NAME'].value_counts().to_string()}")
-print(f"\nCases per product:\n{df['PRODUCT_NAME'].value_counts().to_string()}")
-print(f"\nCases per severity:\n{df['CASE_SEVERITY'].value_counts().to_string()}")
 ```
+
+::: {.panel-tabset}
+
+### Cases per Bank
+
+```{python}
+#| label: tbl-cases-bank
+#| tbl-cap: "Case volume by bank client"
+c1 = (df['COMPANY_NAME']
+      .value_counts()
+      .reset_index()
+      .rename(columns={'COMPANY_NAME': 'Bank', 'count': 'Cases'}))
+c1['Share'] = c1['Cases'] / c1['Cases'].sum()
+(c1.style
+   .format({"Cases": "{:,}", "Share": "{:.1%}"})
+   .bar(subset=["Cases"], color="rgba(28,37,65,0.18)", vmin=0)
+   .bar(subset=["Share"], color="rgba(58,173,212,0.22)", vmin=0, vmax=1)
+   .hide(axis="index")
+   .set_table_attributes('class="dataframe"'))
+```
+
+### Cases per Product
+
+```{python}
+#| label: tbl-cases-product
+#| tbl-cap: "Case volume by USL product"
+c2 = (df['PRODUCT_NAME']
+      .value_counts()
+      .reset_index()
+      .rename(columns={'PRODUCT_NAME': 'Product', 'count': 'Cases'}))
+c2['Share'] = c2['Cases'] / c2['Cases'].sum()
+(c2.style
+   .format({"Cases": "{:,}", "Share": "{:.1%}"})
+   .bar(subset=["Cases"], color="rgba(28,37,65,0.18)", vmin=0)
+   .bar(subset=["Share"], color="rgba(58,173,212,0.22)", vmin=0, vmax=1)
+   .hide(axis="index")
+   .set_table_attributes('class="dataframe"'))
+```
+
+### Cases per Severity
+
+```{python}
+#| label: tbl-cases-severity
+#| tbl-cap: "Case volume by severity level"
+sev_order = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
+c3 = (df['CASE_SEVERITY']
+      .value_counts()
+      .reindex(sev_order)
+      .reset_index()
+      .rename(columns={'CASE_SEVERITY': 'Severity', 'count': 'Cases'}))
+c3['Share'] = c3['Cases'] / c3['Cases'].sum()
+sev_bg = {
+    'CRITICAL': "background: linear-gradient(90deg, rgba(215,38,61,0.18) 0%, transparent 100%)",
+    'HIGH':     "background: linear-gradient(90deg, rgba(244,96,54,0.18) 0%, transparent 100%)",
+    'MEDIUM':   "background: linear-gradient(90deg, rgba(244,162,97,0.18) 0%, transparent 100%)",
+    'LOW':      "background: linear-gradient(90deg, rgba(46,196,182,0.18) 0%, transparent 100%)",
+}
+(c3.style
+   .format({"Cases": "{:,}", "Share": "{:.1%}"})
+   .apply(lambda row: [sev_bg.get(row['Severity'], "")] * len(row), axis=1)
+   .hide(axis="index")
+   .set_table_attributes('class="dataframe"'))
+```
+
+:::
 
 ```{python}
 #| label: numeric-summary
 #| tbl-cap: Numeric summary — Resolution hours
-df["RESOLUTION_TIME_HOURS"].describe().round(2).to_frame().T
+(df["RESOLUTION_TIME_HOURS"]
+ .describe()
+ .round(2)
+ .to_frame()
+ .T
+ .style
+ .format("{:,.2f}")
+ .set_table_attributes('class="dataframe"'))
 ```
 
 ```{python}
@@ -178,28 +269,87 @@ prod_vc  = df['PRODUCT_NAME'].value_counts()
 sev_vc   = df['CASE_SEVERITY'].value_counts().reindex(['CRITICAL','HIGH','MEDIUM','LOW'])
 log_hrs  = np.log1p(df['RESOLUTION_TIME_HOURS'].dropna())
 
+# Individual colour per bar for banks & products
+bank_colors = ["#2E86AB","#A23B72","#F18F01","#C73E1D","#3B1F2B","#44BBA4"]
+prod_colors = ["#3D5A80","#EE6C4D","#98C1D9","#E0FBFC"]
+sev_colors  = ["#D7263D","#F46036","#F4A261","#2EC4B6"]
+
 fig = ps.make_subplots(
-    rows=2, cols=2,
-    subplot_titles=["Cases by Bank", "Cases by Product",
-                    "Cases by Severity", "ln(1 + Resolution hours)"]
+    rows=2, cols=2, vertical_spacing=0.16, horizontal_spacing=0.10,
+    subplot_titles=[
+        "<b>Cases by Bank</b>",
+        "<b>Cases by Product</b>",
+        "<b>Cases by Severity</b>",
+        "<b>Resolution Hours Distribution</b>"
+    ]
 )
-fig.add_trace(go.Bar(x=bank_vc.index.tolist(), y=bank_vc.values,
-                     marker_color=PALETTE[0], name="Bank"), row=1, col=1)
-fig.add_trace(go.Bar(x=prod_vc.index.tolist(), y=prod_vc.values,
-                     marker_color=PALETTE[2], name="Product"), row=1, col=2)
-fig.add_trace(go.Bar(x=sev_vc.index.tolist(), y=sev_vc.values,
-                     marker_color=PALETTE[1], name="Severity"), row=2, col=1)
-fig.add_trace(go.Histogram(x=log_hrs, nbinsx=45,
-                           marker_color=PALETTE[3], name="ln(1+hrs)"), row=2, col=2)
+
+# ── Bank bars with individual colours + count labels ──
+fig.add_trace(go.Bar(
+    x=bank_vc.index.tolist(), y=bank_vc.values.tolist(),
+    marker=dict(color=bank_colors[:len(bank_vc)],
+                line=dict(width=0.8, color="#333")),
+    text=[f"{v:,}" for v in bank_vc.values],
+    textposition="outside", textfont=dict(size=11),
+    hovertemplate="<b>%{x}</b><br>Cases: %{y:,}<br>Share: %{customdata:.1f}%<extra></extra>",
+    customdata=(bank_vc.values / bank_vc.values.sum() * 100).tolist(),
+    showlegend=False
+), row=1, col=1)
+
+# ── Product bars ──
+fig.add_trace(go.Bar(
+    x=prod_vc.index.tolist(), y=prod_vc.values.tolist(),
+    marker=dict(color=prod_colors[:len(prod_vc)],
+                line=dict(width=0.8, color="#333")),
+    text=[f"{v:,}" for v in prod_vc.values],
+    textposition="outside", textfont=dict(size=11),
+    hovertemplate="<b>%{x}</b><br>Cases: %{y:,}<br>Share: %{customdata:.1f}%<extra></extra>",
+    customdata=(prod_vc.values / prod_vc.values.sum() * 100).tolist(),
+    showlegend=False
+), row=1, col=2)
+
+# ── Severity bars ──
+fig.add_trace(go.Bar(
+    x=sev_vc.index.tolist(), y=sev_vc.values.tolist(),
+    marker=dict(color=sev_colors,
+                line=dict(width=0.8, color="#333")),
+    text=[f"{v:,}" for v in sev_vc.values],
+    textposition="outside", textfont=dict(size=11),
+    hovertemplate="<b>%{x}</b><br>Cases: %{y:,}<br>Share: %{customdata:.1f}%<extra></extra>",
+    customdata=(sev_vc.values / sev_vc.values.sum() * 100).tolist(),
+    showlegend=False
+), row=2, col=1)
+
+# ── Resolution hours histogram with rug-like median line ──
+fig.add_trace(go.Histogram(
+    x=log_hrs, nbinsx=50,
+    marker=dict(color="rgba(245,137,24,0.7)",
+                line=dict(width=0.5, color="rgba(245,137,24,1)")),
+    hovertemplate="Bin centre: %{x:.1f}<br>Count: %{y:,}<extra></extra>",
+    showlegend=False
+), row=2, col=2)
+
+median_log = float(np.log1p(df['RESOLUTION_TIME_HOURS'].median()))
+fig.add_vline(x=median_log, line=dict(color="#D7263D", width=2, dash="dash"),
+              annotation_text=f"Median = {df['RESOLUTION_TIME_HOURS'].median():.0f}h",
+              annotation_position="top right",
+              annotation_font_size=10, annotation_font_color="#D7263D",
+              row=2, col=2)
 
 fig.update_layout(
-    height=580, showlegend=False,
-    title_text="Data Distributions",
-    template="simple_white"
+    height=640, showlegend=False,
+    title=dict(text="<b>Data Distributions — 5,035 Closed Cases</b>",
+               font=dict(size=16)),
+    template="plotly_white",
+    font=dict(family="Segoe UI, Helvetica, Arial, sans-serif", size=12),
+    margin=dict(t=80, b=40),
+    hoverlabel=dict(bgcolor="white", font_size=12, font_family="monospace")
 )
-fig.update_xaxes(tickangle=-30, row=1, col=1)
-fig.update_xaxes(tickangle=-30, row=1, col=2)
+fig.update_xaxes(tickangle=-25, row=1, col=1)
+fig.update_xaxes(tickangle=-20, row=1, col=2)
 fig.update_xaxes(title_text="ln(1 + hours)", row=2, col=2)
+fig.update_yaxes(title_text="Count", row=1, col=1)
+fig.update_yaxes(title_text="Count", row=2, col=2)
 fig.show()
 ```
 
@@ -213,9 +363,7 @@ missing values in any field.
 
 # Analytical Question
 
-> **What 12-month engineering-investment scenario most cost-effectively
-> reduces USL's combined SLA-breach penalty + renewal-revenue exposure
-> across the six bank tenants and four products?**
+> **Which 12-month engineering investment scenario most cost-effectively minimizes USL's combined exposure to SLA-breach penalties and renewal-revenue loss across its six bank tenants and four product lines?**
 
 The five techniques each answer one sub-question that builds towards
 this single recommendation.
@@ -395,24 +543,67 @@ mc_tab.style.format({c: "${:,.0f}" for c in ["Mean","P5","P50","P95","Savings vs
 ```{python}
 #| label: mc-plot
 #| fig-cap: "Monte Carlo distributions of total annual cost by scenario"
-fig = go.Figure()
-mc_colors = [PALETTE[0], PALETTE[2], PALETTE[3], PALETTE[1]]
-for (name, arr), col in zip(results.items(), mc_colors):
+mc_colors = {"A. Status quo": "#6C757D", "B. +2 L2 engineers": "#2E86AB",
+             "C. Pod re-org": "#F18F01", "D. Comprehensive": "#D7263D"}
+
+fig = ps.make_subplots(
+    rows=1, cols=2, column_widths=[0.62, 0.38],
+    subplot_titles=["<b>Cost Distribution by Scenario</b>",
+                    "<b>Scenario Comparison — Key Percentiles</b>"],
+    horizontal_spacing=0.10
+)
+
+# ── Panel 1: overlapping histograms ──
+for name, arr in results.items():
+    col = mc_colors[name]
     fig.add_trace(go.Histogram(
         x=arr / 1e6, nbinsx=70,
-        opacity=0.55, name=name,
-        marker_color=col,
-        hovertemplate="%{x:.2f}M USD<extra>" + name + "</extra>"
-    ))
+        opacity=0.50, name=name,
+        marker=dict(color=col, line=dict(width=0.3, color=col)),
+        legendgroup=name,
+        hovertemplate="Cost: $%{x:.2f}M<br>Count: %{y:,}<extra>" + name + "</extra>"
+    ), row=1, col=1)
+
+# ── P95 markers as staggered annotations (no overlap) ──
+p95_vals = {name: np.percentile(arr, 95) / 1e6 for name, arr in results.items()}
+y_offsets = [0.97, 0.88, 0.79, 0.70]  # stagger from top
+for (name, p95), yref in zip(p95_vals.items(), y_offsets):
+    col = mc_colors[name]
+    fig.add_vline(x=p95, line=dict(color=col, width=1.5, dash="dot"), row=1, col=1)
+    fig.add_annotation(
+        x=p95, y=yref,
+        xref="x", yref="y domain",
+        text=f"<b>P95</b> ${p95:.2f}M",
+        font=dict(size=9, color="white", family="monospace"),
+        bgcolor=col, borderpad=3, bordercolor=col,
+        showarrow=True, arrowhead=0, arrowwidth=1, arrowcolor=col,
+        ax=30, ay=0
+    )
+
+# ── Panel 2: box plots ──
+for name, arr in results.items():
+    col = mc_colors[name]
+    fig.add_trace(go.Box(
+        y=arr / 1e6, name=name.split(". ")[1],
+        marker_color=col, boxmean=True,
+        legendgroup=name, showlegend=False,
+        hovertemplate="<b>" + name + "</b><br>Value: $%{y:.2f}M<extra></extra>"
+    ), row=1, col=2)
+
 fig.update_layout(
-    barmode="overlay",
-    title="Monte Carlo — penalties + investment + renewal-revenue at risk",
-    xaxis_title="12-month total cost (USD millions)",
-    yaxis_title="Frequency (10,000 simulations)",
-    template="simple_white",
-    height=420,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0)
+    barmode="overlay", height=490,
+    title=dict(text="<b>Monte Carlo — 10,000 Simulations of Total Annual Exposure</b>",
+               font=dict(size=15)),
+    template="plotly_white",
+    font=dict(family="Segoe UI, Helvetica, Arial, sans-serif", size=12),
+    legend=dict(orientation="h", yanchor="bottom", y=1.05, xanchor="center", x=0.31,
+                font=dict(size=11)),
+    hoverlabel=dict(bgcolor="white", font_size=11, font_family="monospace"),
+    margin=dict(t=95, b=45)
 )
+fig.update_xaxes(title_text="12-month total cost (USD millions)", row=1, col=1)
+fig.update_yaxes(title_text="Frequency", row=1, col=1)
+fig.update_yaxes(title_text="Cost (USD millions)", row=1, col=2)
 fig.show()
 ```
 
@@ -467,38 +658,84 @@ fc = mod.forecast(6).round()
 sd = (m - mod.fittedvalues).std()
 ci_low, ci_high = fc - 1.96*sd, fc + 1.96*sd
 
-# Build interactive Plotly chart
 obs_x  = [str(t.date()) for t in m.index]
 fc_x   = [str(t.date()) for t in fc.index]
-ci_x   = fc_x + fc_x[::-1]
-ci_y   = list(ci_high.values) + list(ci_low.values[::-1])
 
 fig = go.Figure()
+
+# ── 95% confidence band ──
+fig.add_trace(go.Scatter(
+    x=fc_x, y=ci_high.values.tolist(),
+    mode="lines", line=dict(width=0),
+    showlegend=False, hoverinfo="skip"
+))
+fig.add_trace(go.Scatter(
+    x=fc_x, y=ci_low.values.tolist(),
+    mode="lines", line=dict(width=0),
+    fill="tonexty",
+    fillcolor="rgba(215,38,61,0.12)",
+    name="95% Confidence Band",
+    hoverinfo="skip"
+))
+
+# ── Observed series — filled area + line + markers ──
 fig.add_trace(go.Scatter(
     x=obs_x, y=m.values.tolist(),
-    mode="lines+markers", name="Observed",
-    line=dict(color=PALETTE[0], width=2),
-    marker=dict(size=7),
-    hovertemplate="%{x}: %{y:,} cases<extra>Observed</extra>"
+    mode="lines+markers+text",
+    name="Observed (Jun–Dec 2025)",
+    line=dict(color="#2E86AB", width=3),
+    marker=dict(size=10, color="#2E86AB",
+                line=dict(width=2, color="white")),
+    text=[f"{v:,}" for v in m.values],
+    textposition="top center",
+    textfont=dict(size=10, color="#2E86AB"),
+    fill="tozeroy",
+    fillcolor="rgba(46,134,171,0.08)",
+    hovertemplate="<b>%{x}</b><br>Cases: %{y:,}<extra>Observed</extra>"
 ))
-fig.add_trace(go.Scatter(
-    x=ci_x, y=ci_y,
-    fill="toself", fillcolor="rgba(228,87,86,0.15)",
-    line=dict(color="rgba(0,0,0,0)"),
-    name="95% CI", hoverinfo="skip"
-))
+
+# ── Holt forecast line ──
 fig.add_trace(go.Scatter(
     x=fc_x, y=fc.values.tolist(),
-    mode="lines+markers", name="Holt forecast",
-    line=dict(color=PALETTE[1], width=2, dash="dash"),
-    marker=dict(symbol="square", size=7),
-    hovertemplate="%{x}: %{y:,} cases (forecast)<extra>Holt</extra>"
+    mode="lines+markers+text",
+    name="Holt Forecast (6-month)",
+    line=dict(color="#D7263D", width=3, dash="dash"),
+    marker=dict(size=10, symbol="diamond",
+                color="#D7263D",
+                line=dict(width=2, color="white")),
+    text=[f"{v:,.0f}" for v in fc.values],
+    textposition="top center",
+    textfont=dict(size=10, color="#D7263D"),
+    hovertemplate="<b>%{x}</b><br>Forecast: %{y:,.0f} cases<extra>Holt</extra>"
 ))
+
+# ── Annotation for peak & trough ──
+peak_idx = int(np.argmax(m.values))
+fig.add_annotation(
+    x=obs_x[peak_idx], y=int(m.values[peak_idx]),
+    text=f"▲ Peak: {int(m.values[peak_idx]):,}",
+    showarrow=True, arrowhead=2, arrowcolor="#2E86AB",
+    font=dict(size=11, color="#2E86AB", family="monospace"),
+    ax=40, ay=-35
+)
+
 fig.update_layout(
-    title="USL ISURA — monthly case volume + 6-month Holt forecast",
-    xaxis_title="Month", yaxis_title="Cases per month",
-    template="simple_white", height=420,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0)
+    title=dict(text="<b>USL ISURA — Monthly Case Volume & 6-Month Holt Forecast</b>",
+               font=dict(size=15)),
+    xaxis=dict(title="Month",
+               rangeslider=dict(visible=True, thickness=0.06),
+               showspikes=True, spikemode="across",
+               spikethickness=1, spikecolor="#888"),
+    yaxis=dict(title="Cases per month",
+               showspikes=True, spikethickness=1, spikecolor="#888"),
+    hovermode="x unified",
+    template="plotly_white",
+    font=dict(family="Segoe UI, Helvetica, Arial, sans-serif", size=12),
+    height=480,
+    legend=dict(orientation="h", yanchor="bottom", y=1.04,
+                xanchor="center", x=0.5, font=dict(size=11)),
+    hoverlabel=dict(bgcolor="white", font_size=11, font_family="monospace"),
+    margin=dict(t=85)
 )
 fig.show()
 
@@ -565,22 +802,47 @@ cph.summary[["coef","exp(coef)","se(coef)","z","p"]].round(3)
 ```{python}
 #| label: km
 #| fig-cap: "Kaplan-Meier — probability of NO SLA breach yet, by product"
-kmf   = KaplanMeierFitter()
-fig   = go.Figure()
-prods = df["PRODUCT_NAME"].unique()
+kmf = KaplanMeierFitter()
+fig = go.Figure()
 
-for prod, col in zip(prods, PALETTE):
+km_colors = {"KACHASI v2.x": "#2E86AB", "KACHASI v1.x": "#A23B72",
+             "TENTACLES": "#F18F01", "DATASTORE": "#44BBA4"}
+
+# ── SLA threshold zones (shaded vertical bands behind curves) ──
+sla_bands = [
+    (0.1,    24,  "CRITICAL<br>≤ 24h", "#FDECEC"),
+    (24,     72,  "HIGH<br>≤ 72h",     "#FFF3E0"),
+    (72,    120,  "MEDIUM<br>≤ 120h",  "#F0F4C3"),
+    (120,   240,  "LOW<br>≤ 240h",     "#E8F5E9"),
+]
+for x0, x1, label, bgcolor in sla_bands:
+    fig.add_vrect(
+        x0=x0, x1=x1,
+        fillcolor=bgcolor, opacity=0.55, layer="below", line_width=0,
+    )
+    fig.add_annotation(
+        x=np.log10(np.sqrt(x0 * x1)) if x0 > 0 else np.log10(x1 / 2),
+        y=1.02, yref="y domain",
+        text=f"<b>{label}</b>",
+        font=dict(size=8.5, color="#555"),
+        showarrow=False, xref="x"
+    )
+
+# ── Survival curves — clean lines, no fill ──
+for prod in sorted(km_colors.keys()):
     msk = df["PRODUCT_NAME"] == prod
+    if msk.sum() == 0:
+        continue
     kmf.fit(df.loc[msk, "RESOLUTION_TIME_HOURS"],
-            df.loc[msk, "BREACH"],
-            label=prod)
-    sf   = kmf.survival_function_
-    t    = sf.index.tolist()
-    s    = sf.iloc[:, 0].tolist()
-    n    = int(msk.sum())
-    # step line: repeat each time point to get a true step shape
-    t_step = []
-    s_step = []
+            df.loc[msk, "BREACH"], label=prod)
+    sf = kmf.survival_function_
+    t  = sf.index.tolist()
+    s  = sf.iloc[:, 0].tolist()
+    n  = int(msk.sum())
+    col = km_colors[prod]
+
+    # Step shape
+    t_step, s_step = [], []
     for i in range(len(t) - 1):
         t_step += [t[i], t[i+1]]
         s_step += [s[i], s[i]]
@@ -588,17 +850,57 @@ for prod, col in zip(prods, PALETTE):
 
     fig.add_trace(go.Scatter(
         x=t_step, y=s_step,
-        mode="lines", name=f"{prod}  (n={n:,})",
-        line=dict(color=col, width=2),
-        hovertemplate="Hours: %{x:.1f}<br>P(no breach): %{y:.3f}<extra>" + prod + "</extra>"
+        mode="lines",
+        name=f"{prod}  (n = {n:,})",
+        line=dict(color=col, width=3),
+        hovertemplate=(
+            "<b>" + prod + "</b><br>"
+            "Hours: %{x:,.1f}<br>"
+            "Survival: %{y:.1%}<extra></extra>"
+        )
     ))
 
-fig.update_xaxes(type="log", title_text="Hours since case opened (log scale)")
-fig.update_yaxes(title_text="P(no SLA breach yet)", range=[0, 1.02])
+# ── 50% survival reference ──
+fig.add_hline(y=0.5,
+              line=dict(color="#AAAAAA", width=1, dash="dash"))
+fig.add_annotation(
+    x=1.0, y=0.50, xref="paper",
+    text="50 % survival", font=dict(size=9, color="#999"),
+    showarrow=False, xanchor="left", xshift=5
+)
+
+fig.update_xaxes(
+    type="log",
+    title_text="Hours since case opened (log scale)",
+    showgrid=False,
+    showspikes=True, spikemode="across",
+    spikethickness=1, spikecolor="#bbb", spikedash="dot",
+    range=[np.log10(0.5), np.log10(10000)]
+)
+fig.update_yaxes(
+    title_text="P (no SLA breach yet)",
+    range=[-0.02, 1.08],
+    tickformat=".0%",
+    showgrid=True, gridwidth=0.5, gridcolor="rgba(0,0,0,0.06)",
+    zeroline=False
+)
 fig.update_layout(
-    title="Time-to-SLA-breach by product (Kaplan-Meier)",
-    template="simple_white", height=430,
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0)
+    title=dict(
+        text="<b>Time-to-SLA-Breach by Product — Kaplan-Meier Survival Curves</b>",
+        font=dict(size=15)),
+    template="plotly_white",
+    font=dict(family="Segoe UI, Helvetica, Arial, sans-serif", size=12),
+    height=500,
+    hovermode="closest",
+    legend=dict(
+        orientation="h", yanchor="bottom", y=-0.18,
+        xanchor="center", x=0.5,
+        font=dict(size=11),
+        bgcolor="rgba(255,255,255,0.85)",
+        bordercolor="#ddd", borderwidth=1
+    ),
+    hoverlabel=dict(bgcolor="white", font_size=11, font_family="monospace"),
+    margin=dict(t=80, b=80)
 )
 fig.show()
 ```
@@ -677,27 +979,98 @@ lp_out
 ```{python}
 #| label: lp-plot
 #| fig-cap: "Optimal sprint capacity allocation"
-fig = go.Figure(go.Bar(
-    x=lp_out["Optimal_pts"].tolist(),
-    y=lp_out["Track"].tolist(),
-    orientation="h",
-    marker_color=PALETTE[0],
-    text=[f"{v} pts  ({v/240*100:.0f}%)" for v in lp_out["Optimal_pts"]],
-    textposition="outside",
-    hovertemplate="<b>%{y}</b><br>Points: %{x}<br>Value: %{customdata:.0f}<extra></extra>",
-    customdata=lp_out["Value"].tolist()
-))
-fig.update_layout(
-    title="Optimal Sprint Capacity Allocation (240 SP total)",
-    xaxis_title="Story points allocated",
-    xaxis_range=[0, lp_out["Optimal_pts"].max() * 1.25],
-    template="simple_white",
-    height=360
+# Colour-code bars by value-per-point intensity
+vpp      = lp_out["ValuePerPoint"].tolist()
+vpp_norm = [(v - min(vpp)) / (max(vpp) - min(vpp) + 1e-9) for v in vpp]
+bar_cols = [f"rgba({int(215*n + 46*(1-n))},{int(38*n + 134*(1-n))},{int(61*n + 171*(1-n))},0.85)"
+            for n in vpp_norm]  # gradient from cool blue → hot red
+
+fig = ps.make_subplots(
+    rows=1, cols=2, column_widths=[0.62, 0.38],
+    specs=[[{"type": "xy"}, {"type": "pie"}]],
+    subplot_titles=["<b>Points Allocated per Track</b>",
+                    "<b>Share of Sprint Capacity</b>"],
+    horizontal_spacing=0.08
 )
+
+# ── Bar chart with min/max constraint markers ──
+tracks   = lp_out["Track"].tolist()
+opt_pts  = lp_out["Optimal_pts"].tolist()
+min_pts  = items["Min"].tolist()
+max_pts  = items["Max"].tolist()
+
+fig.add_trace(go.Bar(
+    x=opt_pts, y=tracks,
+    orientation="h",
+    marker=dict(color=bar_cols,
+                line=dict(width=1, color="#333")),
+    text=[f"<b>{v} pts</b>  (${val:.0f} value)" for v, val in zip(opt_pts, lp_out["Value"])],
+    textposition="outside",
+    textfont=dict(size=11),
+    hovertemplate=(
+        "<b>%{y}</b><br>"
+        "Allocated: %{x} pts<br>"
+        "Value/pt: $%{customdata[0]:.1f}<br>"
+        "Min: %{customdata[1]}  |  Max: %{customdata[2]}<br>"
+        "Total value: $%{customdata[3]:.0f}<extra></extra>"
+    ),
+    customdata=list(zip(vpp, min_pts, max_pts, lp_out["Value"].tolist())),
+    showlegend=False
+), row=1, col=1)
+
+# Min constraint diamonds
+fig.add_trace(go.Scatter(
+    x=min_pts, y=tracks,
+    mode="markers", name="Min constraint",
+    marker=dict(symbol="diamond", size=10, color="#F18F01",
+                line=dict(width=1.5, color="#333")),
+    hovertemplate="<b>%{y}</b> — Min floor: %{x} pts<extra></extra>"
+), row=1, col=1)
+
+# Max constraint diamonds
+fig.add_trace(go.Scatter(
+    x=max_pts, y=tracks,
+    mode="markers", name="Max cap",
+    marker=dict(symbol="diamond", size=10, color="#D7263D",
+                line=dict(width=1.5, color="#333")),
+    hovertemplate="<b>%{y}</b> — Max cap: %{x} pts<extra></extra>"
+), row=1, col=1)
+
+# ── Donut chart for share breakdown ──
+fig.add_trace(go.Pie(
+    labels=tracks, values=opt_pts,
+    hole=0.45,
+    marker=dict(colors=bar_cols,
+                line=dict(width=2, color="white")),
+    textinfo="label+percent",
+    textfont=dict(size=11),
+    hovertemplate="<b>%{label}</b><br>%{value} pts (%{percent})<extra></extra>",
+    showlegend=False
+), row=1, col=2)
+
+# Centre annotation for donut
+fig.add_annotation(
+    text=f"<b>240</b><br>total pts",
+    x=0.82, y=0.5, xref="paper", yref="paper",
+    font=dict(size=14, color="#333"), showarrow=False
+)
+
+fig.update_layout(
+    title=dict(text="<b>Optimal Sprint Capacity Allocation (240 SP)</b>",
+               font=dict(size=15)),
+    template="plotly_white",
+    font=dict(family="Segoe UI, Helvetica, Arial, sans-serif", size=12),
+    height=420,
+    legend=dict(orientation="h", yanchor="bottom", y=-0.15,
+                xanchor="center", x=0.31, font=dict(size=11)),
+    hoverlabel=dict(bgcolor="white", font_size=11, font_family="monospace"),
+    margin=dict(t=80, b=30)
+)
+fig.update_xaxes(title_text="Story points", range=[0, max(max_pts) * 1.35], row=1, col=1)
 fig.show()
 ```
 
-## Interpretation
+## Interpretation {style="margin-top: -1.5rem;"}
 
 The LP solver returns **Change Requests 110 pts (at cap), Bugs 60 pts
 (at floor), Compliance 50 pts, Performance 20 pts (at floor), Platform
@@ -795,6 +1168,10 @@ keeps classifier-driven triage learning over time.
 - Central Bank of Nigeria. (2024). *Risk-based cybersecurity framework
   and guidelines for deposit money banks and payment service providers
   (revised)*. CBN Banking Supervision Department.
+
+- Adi, B. (2026). *AI-powered business analytics: a practical textbook
+  for data-driven decision making*. Mark Analytics.
+  https://markanalytics.online/ai-powered-data-analytics/
 
 :::
 

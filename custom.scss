@@ -1,0 +1,539 @@
+/*-- scss:defaults --*/
+
+// ── Typography ──
+$font-family-sans-serif: "Inter", "Source Sans Pro", "Segoe UI", system-ui, sans-serif;
+$font-family-monospace: "Fira Code", "JetBrains Mono", "Cascadia Code", monospace;
+$headings-font-family: "Inter", "Source Sans Pro", sans-serif;
+$headings-font-weight: 700;
+$font-size-root: 17px;
+$line-height-base: 1.72;
+$headings-line-height: 1.25;
+
+// ── Union Systems brand palette ──
+$usl-navy: #1C2541;
+$usl-navy-mid: #253A5E;
+$usl-sky: #6BC5E8;
+$usl-sky-light: #A8DDF0;
+$usl-sky-pale: #E0F2FA;
+$usl-sky-dark: #3AADD4;
+
+// ── Bootstrap overrides ──
+$primary: $usl-navy;
+$secondary: $usl-sky-dark;
+$success: $usl-sky;
+$info: $usl-sky-light;
+$warning: #E9C46A;
+$danger: #E76F51;
+$light: #F4F8FB;
+$dark: $usl-navy;
+
+$body-bg: #FFFFFF;
+$body-color: #2C3E50;
+
+$link-color: $usl-sky-dark;
+$link-hover-color: darken($usl-sky-dark, 14%);
+$link-decoration: none;
+
+// ── Code ──
+$code-bg: #EFF6FA;
+$code-color: $usl-navy;
+$code-block-bg: #F4F8FB;
+
+// ── Callouts ──
+$callout-color-note: $usl-sky-dark;
+$callout-color-tip: $usl-sky;
+$callout-color-warning: #E9C46A;
+$callout-color-important: #E76F51;
+$callout-color-caution: #D4A373;
+
+/*-- scss:rules --*/
+
+/* ── Google Font import ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* ════════════════════════════════════════════
+   TITLE BLOCK
+   ════════════════════════════════════════════ */
+#title-block-header {
+  background: linear-gradient(135deg, $usl-navy 0%, $usl-navy-mid 50%, $usl-sky-dark 100%);
+  color: #FFFFFF;
+  padding: 3rem 2.8rem 2.2rem;
+  margin: -1rem -1rem 2.8rem;
+  border-radius: 0 0 1.2rem 1.2rem;
+  box-shadow: 0 6px 28px rgba(28, 37, 65, 0.22);
+  position: relative;
+  overflow: hidden;
+
+  // Subtle decorative circle (echoes the USL logo blob)
+  &::after {
+    content: "";
+    position: absolute;
+    top: -60px;
+    right: -40px;
+    width: 220px;
+    height: 220px;
+    background: rgba($usl-sky, 0.12);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+
+  .title {
+    font-size: 2.3rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.35rem;
+    color: #FFFFFF;
+    position: relative;
+    z-index: 1;
+  }
+
+  .subtitle {
+    font-size: 1.05rem;
+    font-weight: 400;
+    opacity: 0.90;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: $usl-sky-light;
+  }
+
+  .author, .quarto-title-author-name {
+    font-weight: 500;
+    color: $usl-sky-light;
+    margin-top: 0.8rem;
+  }
+
+  .date, .quarto-title-meta-contents {
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 0.9rem;
+  }
+
+  p.author, p.date {
+    color: $usl-sky-light !important;
+  }
+
+  .quarto-title-meta-heading {
+    color: rgba(255, 255, 255, 0.55);
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.06em;
+  }
+}
+
+/* ════════════════════════════════════════════
+   SECTION HEADINGS
+   ════════════════════════════════════════════ */
+h1 {
+  color: $usl-navy;
+  border-bottom: 3px solid $usl-sky;
+  padding-bottom: 0.5rem;
+  margin-top: 3rem;
+  margin-bottom: 1.2rem;
+  font-weight: 800;
+}
+
+h2 {
+  color: $usl-navy-mid;
+  margin-top: 2.2rem;
+  margin-bottom: 0.8rem;
+  font-weight: 700;
+  position: relative;
+  padding-left: 0.9rem;
+
+  &::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.15em;
+    bottom: 0.15em;
+    width: 4px;
+    background: $usl-sky;
+    border-radius: 2px;
+  }
+}
+
+h3 {
+  color: $usl-navy;
+  font-weight: 600;
+  margin-top: 1.6rem;
+  margin-bottom: 0.6rem;
+}
+
+h4, h5, h6 {
+  color: darken($usl-navy-mid, 5%);
+  font-weight: 600;
+}
+
+/* ════════════════════════════════════════════
+   TABLE OF CONTENTS (LEFT SIDEBAR)
+   ════════════════════════════════════════════ */
+#TOC {
+  border-left: 3px solid $usl-sky;
+  padding-left: 1rem;
+  font-size: 0.91rem;
+}
+
+#TOC a {
+  color: $body-color;
+  transition: color 0.2s ease, padding-left 0.2s ease;
+  text-decoration: none;
+
+  &:hover {
+    color: $usl-sky-dark;
+    padding-left: 0.3rem;
+  }
+
+  &.active {
+    color: $usl-navy;
+    font-weight: 600;
+  }
+}
+
+/* ════════════════════════════════════════════
+   CODE BLOCKS
+   ════════════════════════════════════════════ */
+div.sourceCode {
+  border: 1px solid #DDE5ED;
+  border-left: 4px solid $usl-sky;
+  border-radius: 0.55rem;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.04);
+  margin: 1rem 0;
+}
+
+pre > code {
+  font-size: 0.87rem;
+  line-height: 1.55;
+}
+
+code {
+  font-size: 0.88em;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  background-color: $code-bg;
+}
+
+// Code-fold button
+.code-tools-button {
+  color: $usl-sky-dark !important;
+  font-size: 0.8rem;
+
+  &:hover {
+    color: $usl-navy !important;
+  }
+}
+
+/* ════════════════════════════════════════════
+   TABLES
+   ════════════════════════════════════════════ */
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 0.55rem;
+  overflow: hidden;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  margin: 1.2rem 0;
+}
+
+.table thead th {
+  background: $usl-navy;
+  color: #FFFFFF;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  padding: 0.8rem 1rem;
+  border: none;
+}
+
+.table tbody tr {
+  transition: background-color 0.15s ease;
+
+  &:nth-child(even) {
+    background: #F4F7FB;
+  }
+
+  &:hover {
+    background: $usl-sky-pale;
+  }
+}
+
+.table tbody td {
+  padding: 0.65rem 1rem;
+  border-top: 1px solid #E8ECF1;
+  font-size: 0.92rem;
+}
+
+// Pandas dataframe styling
+.dataframe,
+.cell-output-display table {
+  width: 100%;
+  max-height: 420px;
+  overflow-y: auto;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 0.55rem;
+  border: 1px solid #CBD5E1;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+  margin: 1.2rem 0;
+}
+
+.dataframe thead th,
+.cell-output-display table thead th {
+  background: $usl-navy !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.8rem 1rem;
+  border-bottom: 2px solid darken($usl-navy, 5%);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.dataframe tbody td,
+.cell-output-display table tbody td {
+  padding: 0.65rem 1rem;
+  border-top: 1px solid #E8ECF1;
+  border-right: 1px solid #E8ECF1;
+  font-size: 0.92rem;
+
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.dataframe tbody th,
+.cell-output-display table tbody th {
+  background: #F0F4F8;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: $usl-navy;
+  padding: 0.65rem 1rem;
+  border-top: 1px solid #E8ECF1;
+  border-right: 1px solid #DDE3EB;
+}
+
+.dataframe tbody tr:nth-child(even),
+.cell-output-display table tbody tr:nth-child(even) {
+  background: #F4F7FB;
+}
+
+.dataframe tbody tr:hover,
+.cell-output-display table tbody tr:hover {
+  background: $usl-sky-pale;
+}
+
+/* ════════════════════════════════════════════
+   CALLOUTS
+   ════════════════════════════════════════════ */
+.callout {
+  border-radius: 0.65rem;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  margin: 1.5rem 0;
+  border-left-width: 5px;
+}
+
+.callout-header {
+  font-weight: 600;
+}
+
+/* ════════════════════════════════════════════
+   BLOCKQUOTES (ANALYTICAL QUESTION)
+   ════════════════════════════════════════════ */
+blockquote {
+  background: linear-gradient(135deg, #EDF5FA 0%, $usl-sky-pale 100%);
+  border-left: 5px solid $usl-sky;
+  padding: 1.3rem 1.6rem;
+  border-radius: 0 0.65rem 0.65rem 0;
+  margin: 1.8rem 0;
+  font-style: normal;
+  box-shadow: 0 2px 10px rgba(28, 37, 65, 0.06);
+
+  p {
+    margin-bottom: 0;
+    line-height: 1.65;
+  }
+
+  strong {
+    color: $usl-navy;
+  }
+}
+
+/* ════════════════════════════════════════════
+   FIGURES & PLOTS
+   ════════════════════════════════════════════ */
+.cell-output-display img,
+.quarto-figure img {
+  border-radius: 0.55rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  margin: 0.5rem 0;
+}
+
+.figure-caption,
+figcaption {
+  font-size: 0.87rem;
+  color: #6B7C93;
+  font-style: italic;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+// Plotly container spacing
+.plotly {
+  margin: 1rem 0;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+/* ════════════════════════════════════════════
+   PANEL TABSET
+   ════════════════════════════════════════════ */
+.panel-tabset .nav-tabs {
+  border-bottom: 2px solid $usl-sky;
+}
+
+.panel-tabset .nav-link {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: $body-color;
+  transition: all 0.2s ease;
+  border-radius: 0.4rem 0.4rem 0 0;
+
+  &.active {
+    color: $usl-navy;
+    background-color: $usl-sky-pale;
+    border-color: $usl-sky $usl-sky #fff;
+  }
+
+  &:hover {
+    color: $usl-sky-dark;
+    background-color: rgba($usl-sky, 0.08);
+  }
+}
+
+/* ════════════════════════════════════════════
+   LINKS
+   ════════════════════════════════════════════ */
+a {
+  transition: color 0.2s ease;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+/* ════════════════════════════════════════════
+   PAGE LAYOUT & BACKGROUND
+   ════════════════════════════════════════════ */
+body {
+  background-color: #F2F6FA;
+}
+
+#quarto-content {
+  background-color: #FFFFFF;
+  border-radius: 0;
+}
+
+#quarto-margin-sidebar {
+  border-left: 3px solid $usl-sky;
+}
+
+// Content area max-width override for readability
+.body-content {
+  max-width: 900px;
+}
+
+/* ════════════════════════════════════════════
+   FOOTER
+   ════════════════════════════════════════════ */
+.nav-footer {
+  background: $usl-navy;
+  color: rgba(255, 255, 255, 0.7);
+
+  a {
+    color: $usl-sky-light;
+
+    &:hover {
+      color: #FFFFFF;
+    }
+  }
+}
+
+/* ════════════════════════════════════════════
+   SECTION DIVIDERS (HORIZONTAL RULES)
+   ════════════════════════════════════════════ */
+hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(90deg, $usl-sky 0%, transparent 100%);
+  margin: 2rem 0;
+}
+
+/* ════════════════════════════════════════════
+   NUMBERED SECTION BADGES
+   ════════════════════════════════════════════ */
+.header-section-number {
+  color: $usl-sky-dark;
+  font-weight: 700;
+}
+
+/* ════════════════════════════════════════════
+   REFERENCES SECTION
+   ════════════════════════════════════════════ */
+#refs {
+  font-size: 0.9rem;
+  line-height: 1.6;
+
+  p {
+    padding-left: 1.5em;
+    text-indent: -1.5em;
+  }
+}
+
+/* ════════════════════════════════════════════
+   SELECTION HIGHLIGHT
+   ════════════════════════════════════════════ */
+::selection {
+  background: rgba($usl-sky, 0.30);
+  color: $usl-navy;
+}
+
+/* ════════════════════════════════════════════
+   SMOOTH SCROLL
+   ════════════════════════════════════════════ */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ════════════════════════════════════════════
+   PRINT
+   ════════════════════════════════════════════ */
+@media print {
+  body {
+    background: #FFFFFF !important;
+  }
+
+  #title-block-header {
+    background: $usl-navy !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .table thead th {
+    background: $usl-navy !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  div.sourceCode {
+    box-shadow: none;
+    border: 1px solid #ccc;
+  }
+}
