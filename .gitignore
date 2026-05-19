@@ -1,9 +1,15 @@
 # Quarto render artefacts
 *.html
 *.docx
-*.quarto_ipynb*
+*.quarto_ipynb
 *.quarto_ipynb_1
 *.quarto_ipynb_2
+*.quarto_ipynb_3
+*.quarto_ipynb_4
+*.quarto_ipynb_5
+*.quarto_ipynb_6
+*.quarto_ipynb_7
+*.quarto_ipynb_8
 .quarto/
 
 # R / Python caches
@@ -17,3 +23,5 @@ rsconnect/
 # OS files
 .DS_Store
 Thumbs.db
+.Rproj.user
+.positai

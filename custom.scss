@@ -170,6 +170,16 @@ h4, h5, h6 {
   border-left: 3px solid $usl-sky;
   padding-left: 1rem;
   font-size: 0.91rem;
+
+  ul {
+    padding-left: 0.8rem;
+  }
+
+  li {
+    margin-top: 0.45rem;
+    margin-bottom: 0.45rem;
+    line-height: 1.55;
+  }
 }
 
 #TOC a {
@@ -445,9 +455,9 @@ body {
   border-left: 3px solid $usl-sky;
 }
 
-// Content area max-width override for readability
+// Content area max-width — allows ~90% viewport use
 .body-content {
-  max-width: 900px;
+  max-width: 90%;
 }
 
 /* ════════════════════════════════════════════

@@ -13,7 +13,7 @@ format:
     toc: true
     toc-depth: 3
     toc-location: left
-    toc-title: "Navigation"
+    toc-title: "Table of Content"
     number-sections: true
     fig-width: 8
     fig-height: 4.5
@@ -29,8 +29,8 @@ format:
     embed-resources: true
     page-layout: article
     grid:
-      body-width: 900px
-      margin-width: 280px
+      body-width: 1400px
+      margin-width: 150px
     anchor-sections: true
     fig-cap-location: bottom
     tbl-cap-location: top
@@ -38,7 +38,7 @@ format:
     toc: true
     number-sections: true
 execute:
-  echo: true
+  echo: false
   warning: false
   message: false
   cache: false
@@ -543,6 +543,7 @@ mc_tab.style.format({c: "${:,.0f}" for c in ["Mean","P5","P50","P95","Savings vs
 ```{python}
 #| label: mc-plot
 #| fig-cap: "Monte Carlo distributions of total annual cost by scenario"
+#| output: true
 mc_colors = {"A. Status quo": "#6C757D", "B. +2 L2 engineers": "#2E86AB",
              "C. Pod re-org": "#F18F01", "D. Comprehensive": "#D7263D"}
 
@@ -973,12 +974,29 @@ lp_out["Value"] = lp_out["ValuePerPoint"] * lp_out["Optimal_pts"]
 print("Status:", pulp.LpStatus[prob.status])
 print(f"Objective = {pulp.value(prob.objective):.1f}")
 print(f"Total points used = {lp_out['Optimal_pts'].sum()} of 240")
-lp_out
+
+# Build merged-header display table
+lp_display = items.copy().merge(
+    lp_out[["Track", "Optimal_pts", "Value"]], on="Track"
+)
+lp_display.columns = pd.MultiIndex.from_tuples([
+    ("Input Parameters", "Track"),
+    ("Input Parameters", "Value / Point ($)"),
+    ("Input Parameters", "Min (pts)"),
+    ("Input Parameters", "Max (pts)"),
+    ("LP Solution", "Optimal (pts)"),
+    ("LP Solution", "Total Value ($)"),
+])
+lp_display.style.format({
+    ("Input Parameters", "Value / Point ($)"): "${:.1f}",
+    ("LP Solution", "Total Value ($)"): "${:,.0f}",
+}).hide(axis="index")
 ```
 
 ```{python}
 #| label: lp-plot
 #| fig-cap: "Optimal sprint capacity allocation"
+#| output: true
 # Colour-code bars by value-per-point intensity
 vpp      = lp_out["ValuePerPoint"].tolist()
 vpp_norm = [(v - min(vpp)) / (max(vpp) - min(vpp) + 1e-9) for v in vpp]
@@ -1066,7 +1084,14 @@ fig.update_layout(
     hoverlabel=dict(bgcolor="white", font_size=11, font_family="monospace"),
     margin=dict(t=80, b=30)
 )
-fig.update_xaxes(title_text="Story points", range=[0, max(max_pts) * 1.35], row=1, col=1)
+fig.update_xaxes(
+    title_text="Story points",
+    range=[0, max(max_pts) * 1.65],
+    automargin=True,
+    row=1, col=1
+)
+fig.update_yaxes(automargin=True, row=1, col=1)
+fig.update_layout(margin=dict(t=80, b=30, r=40))
 fig.show()
 ```
 
